@@ -10,7 +10,8 @@ namespace Transaction.Entity
     [Table("Transaction")]
     public class TransactionEntity
     {
-        // Not really need incremental Id keys, but using primary key as Transaction Identifier(Text) will impace db (as cluster index)
+        // Not really need incremental Id keys, 
+        // because using primary key as Transaction Identifier(Text) impact db (as cluster index)
         [Required]
         [Key]
         public int Id { get; set; }
@@ -21,10 +22,20 @@ namespace Transaction.Entity
         [Column(TypeName = "decimal(19,4)")]
         public decimal Amount { get; set; }
         [Required]
+        [MaxLength(3)]
         public string CurrencyCode { get; set; }
         [Required]
-        public DateTime Date { get; set; }
-        [Required]
-        public int Status { get; set; }
+        public DateTime DateTime { get; set; }
+        public StatusCode Status { get; set; }
+        // Probably better this table without meta data, but cost lost traceability
+        //public string FileName { get; set; }
+    }
+
+    public enum StatusCode
+    {
+        _,
+        A,
+        R,
+        D
     }
 }

@@ -10,7 +10,7 @@ using Transaction.Entity;
 namespace Transaction.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20201110162938_Init")]
+    [Migration("20201110180035_Init")]
     partial class Init
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -33,9 +33,10 @@ namespace Transaction.API.Migrations
 
                     b.Property<string>("CurrencyCode")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
 
-                    b.Property<DateTime>("Date")
+                    b.Property<DateTime>("DateTime")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("Status")
