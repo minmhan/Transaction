@@ -44,7 +44,7 @@ namespace Transaction.API.Controllers
                 //TODO: Pagination
                 var transactionLog = await (from trans in _dbcontext.TransactionErrorLog
                                             join transFile in _dbcontext.TransactionFile on trans.FileId equals transFile.Id
-                                            orderby trans.FileId descending
+                                            orderby trans.Id descending
                                             select new
                                             {
                                                 trans.Id,
