@@ -1,6 +1,9 @@
 # Upload Transaction
 Upload CSV and XML transaction files.
 
+# Requirement
+Dotnet Core 3.1
+
 # Projects
 - Trasaction.API
 - Transaction.Entity
