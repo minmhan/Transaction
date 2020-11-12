@@ -1,22 +1,22 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Xml;
-using CsvHelper;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Transaction.API.Library;
-using Transaction.API.Models;
 using Transaction.Entity;
 using Transaction.Entity.Entity;
 
 namespace Transaction.API.Controllers
 {
+    /// <summary>
+    /// Transaction Upload API
+    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     public class TransactionController : ControllerBase
@@ -24,9 +24,14 @@ namespace Transaction.API.Controllers
         private readonly ILogger<TransactionController> _logger;
         private readonly ApplicationDbContext _dbcontext;
         private readonly IWebHostEnvironment _hostingEnvironment;
-        //private readonly EntityExtractor _entityExtractor;
         private const int MAX_FILE_SIZE = 1 * 1024 * 1024; // 1 MB
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="dbContext"></param>
+        /// <param name="environment"></param>
+        /// <param name="logger"></param>
         public TransactionController(ApplicationDbContext dbContext,
             IWebHostEnvironment environment,
             ILogger<TransactionController> logger)
@@ -36,61 +41,211 @@ namespace Transaction.API.Controllers
             _hostingEnvironment = environment;
         }
 
-        [HttpGet("{currencyCode}")]
-        public IEnumerable<TransactionEntity> Get(string currencyCode)
+        /// <summary>
+        /// Get Transaction by Currency Code (ISO4217 Format)
+        /// e.g: USD, EUR
+        /// </summary>
+        /// <param name="currencyCode">ISO4217 Format</param>
+        /// <returns>List of Transaction</returns>
+        [HttpGet()]
+        [Route("/api/Transaction/GetByCurrencyCode/{currencyCode}")]
+        [ProducesResponseType(typeof(IEnumerable<Object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+        public async Task<IEnumerable<object>> GetByCurrencyCode(string currencyCode)
         {
-            var rng = new Random();
-            var data = (from trans in _dbcontext.TransactionEntity
-                       where trans.CurrencyCode == currencyCode
-                       select trans)
-                       .Skip(0)
-                       .Take(10);
+            try
+            {
+                //TODO: Pagination
+                var data = await (from trans in _dbcontext.TransactionEntity
+                                  where trans.CurrencyCode == currencyCode
+                                  orderby trans.Id descending
+                                  select new
+                                  {
+                                      id = trans.TransactionId,
+                                      payment = string.Format("{0} {1}", trans.Amount, trans.CurrencyCode),
+                                      Status = trans.Status.ToString()
+                                  })
+                           .Take(3000)
+                           .ToListAsync();
 
-
-            return data;
+                return data;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, ex.Message);
+                Response.StatusCode = 500;
+                return null;
+            }
         }
 
-        [HttpGet("{start,end}")]
-        public IEnumerable<TransactionEntity> Get2(DateTime start, DateTime end)
+        /// <summary>
+        /// Get Transaction by Date Range(inclusive [startDate, endDate]) (UTC Date Format e.g:2020-11-28T13:55:55Z)
+        /// </summary>
+        /// <param name="startDate">2010-11-28T13:55:55Z</param>
+        /// <param name="endDate">2020-11-28T13:55:55Z</param>
+        /// <returns>List of Transactions</returns>
+        [HttpGet()]
+        [Route("/api/Transaction/GetByDateRange/{startDate},{endDate}")]
+        [ProducesResponseType(typeof(IEnumerable<Object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+        public async Task<IEnumerable<Object>> GetByDateRange(DateTimeOffset startDate, DateTimeOffset endDate)
         {
-            var rng = new Random();
-            var data = (from trans in _dbcontext.TransactionEntity
-                        where trans.DateTime >= start && trans.DateTime <= end
-                        select trans)
-                       .Skip(0)
-                       .Take(10);
+            try
+            {
+                //TODO: Pagination
+                var data = await (from trans in _dbcontext.TransactionEntity
+                                  where trans.DateTime >= startDate.UtcDateTime && trans.DateTime <= endDate.UtcDateTime
+                                  orderby trans.Id descending
+                                  select new
+                                  {
+                                      id = trans.TransactionId,
+                                      payment = string.Format("{0} {1}", trans.Amount, trans.CurrencyCode),
+                                      Status = trans.Status.ToString()
+                                  })
+                           .Take(3000)
+                           .ToListAsync();
 
-
-            return data;
+                return data;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, ex.Message);
+                Response.StatusCode = 500;
+                return null;
+            }
         }
 
-        [HttpGet("{status}")]
-        public IEnumerable<TransactionEntity> Get3(StatusCode status)
+        /// <summary>
+        /// Get Transaction by Status Code (Approve:A, Reject:R, Done:D)
+        /// </summary>
+        /// <param name="statusCode"></param>
+        /// <returns>List of Transaction</returns>
+        [HttpGet()]
+        [Route("/api/Transaction/GetByStatusCode/{statusCode}")]
+        [ProducesResponseType(typeof(IEnumerable<Object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+        public async Task<IEnumerable<Object>> GetByStatusCode(StatusCode statusCode)
         {
-            var rng = new Random();
-            var data = (from trans in _dbcontext.TransactionEntity
-                        where trans.Status == status
-                        select trans)
-                       .Skip(0)
-                       .Take(10);
+            try
+            {
+                //TODO: Pagination
+                //throw new Exception();
+                var data = await (from trans in _dbcontext.TransactionEntity
+                                  where trans.Status == statusCode
+                                  orderby trans.Id descending
+                                  select new
+                                  {
+                                      id = trans.TransactionId,
+                                      payment = string.Format("{0} {1}", trans.Amount, trans.CurrencyCode),
+                                      Status = trans.Status.ToString()
+                                  })
+                           .Take(3000)
+                           .ToListAsync();
 
+                return data;
 
-            return data;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, ex.Message);
+                Response.StatusCode = 500;
+                return null;
+            }
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Post(IFormFile file)
+        /// <summary>
+        /// Upload Transaction File (csv or xml format)
+        /// </summary>
+        /// <param name="file">.csv, .xml</param>
+        /// <returns>List of Transaction</returns>
+        [HttpPost("upload", Name = "upload")]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> UploadFile(IFormFile file)
         {
             if (file == null)
                 return BadRequest("File required");
 
             var ext = Path.GetExtension(file.FileName).ToLower();
             if (!(ext == ".csv" || ext == ".xml"))
-                return BadRequest("Invalid File Type");
+                return BadRequest("Unknown format");
 
             if (file.Length > (MAX_FILE_SIZE))
                 return BadRequest($"Invalid File Size (Maximum: {MAX_FILE_SIZE / (1024 * 1024)} MB)");
 
+
+            // Save file into Uploads folder
+            var transFile = new TransactionFile();
+            string errormsg = "";
+            try
+            {
+                //throw new Exception();
+                transFile = await SaveFileAsync(file);
+                Strategy strategy;
+                if (ext == ".csv")
+                    strategy = new CsvExtractor();
+                else
+                    strategy = new XmlExtractor();
+
+                var entityExtractor = new TransactionExtractor(strategy);
+                var entities = entityExtractor.ExtractTransaction(file);
+                if (entities.Where(x => !string.IsNullOrWhiteSpace(x.Errors)).Count() == 0)
+                {
+                    // Clean records, add to transaction
+                    var cleanEntities = entities.Select(x => new TransactionEntity
+                    {
+                        TransactionId = x.TransactionId,
+                        Amount = x.ValidAmount.Value,
+                        CurrencyCode = x.CurrencyCode,
+                        DateTime = x.ValidTransactionDate.Value.UtcDateTime,
+                        Status = x.ValidStatus
+                    });
+                    _dbcontext.TransactionEntity.AddRange(cleanEntities);
+                }
+                else
+                {
+                    // Dirty records, add to error log
+                    var errors = entities.Select(x => new TransactionErrorLog
+                    {
+                        TransactionId = x.TransactionId,
+                        Amount = x.Amount,
+                        CurrencyCode = x.CurrencyCode,
+                        DateTime = x.TransactionDate,
+                        Status = x.Status,
+                        Error = x.Errors,
+                        FileId = transFile.Id
+                    });
+                    _dbcontext.TransactionErrorLog.AddRange(errors);
+                    errormsg = "Some records in uploaded file is not valid, please check error log for details.";
+                }
+                await _dbcontext.SaveChangesAsync();
+                if (string.IsNullOrWhiteSpace(errormsg))
+                    return Ok("Success");
+                else
+                    return BadRequest(errormsg);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, ex.Message);
+
+                if (System.IO.File.Exists(Path.Combine(_hostingEnvironment.ContentRootPath, "Uploads", transFile.FileName ?? "")))
+                {
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+                    System.IO.File.Delete(Path.Combine(_hostingEnvironment.ContentRootPath, "Uploads", transFile.FileName ?? ""));
+                }
+                // TODO: If db exception in here
+                if (transFile.Id != 0)
+                {
+                    _dbcontext.TransactionFile.Remove(transFile);
+                    await _dbcontext.SaveChangesAsync();
+                }
+                return new StatusCodeResult(500);
+            }
+        }
+
+        private async Task<TransactionFile> SaveFileAsync(IFormFile file)
+        {
             var uniqueFileName = GetUniqueFileName(file.FileName);
             var uploads = Path.Combine(_hostingEnvironment.ContentRootPath, "Uploads");
             var filePath = Path.Combine(uploads, uniqueFileName);
@@ -103,119 +258,16 @@ namespace Transaction.API.Controllers
             _dbcontext.TransactionFile.Add(transFile);
             await _dbcontext.SaveChangesAsync();
 
-            Strategy strategy;
-            if (ext == ".csv")
-                strategy = new CsvExtractor();
-            else
-                strategy = new XmlExtractor();
-            var entityExtractor = new EntityExtractor(strategy);
-            var entities = entityExtractor.ExtractEntity(file);
-
-            if(entities.Where(x => string.IsNullOrWhiteSpace(x.Errors)).Count() == 0){
-                // Clean records, add to transaction
-                var e = entities.Select(x => new TransactionEntity
-                {
-                    TransactionId = x.TransactionId,
-                    Amount = x.ValidAmount.Value,
-                    CurrencyCode = x.CurrencyCode,
-                    DateTime = x.ValidTransactionDate.Value.UtcDateTime,
-                    Status = Entity.StatusCode.A
-                });
-                _dbcontext.TransactionEntity.AddRange(e);
-            }
-            else
-            {
-                // Dirty records, add to error log
-                var errors = entities.Select(x => new TransactionErrorLog
-                {
-                    TransactionId = x.TransactionId,
-                    Amount = x.Amount,
-                    CurrencyCode = x.CurrencyCode,
-                    DateTime = x.TransactionDate,
-                    Status = x.Status
-                });
-                _dbcontext.TransactionErrorLog.AddRange(errors);
-            }
-            await _dbcontext.SaveChangesAsync();
-
-            return Ok();
-        }
-
-        private bool IsValid()
-        {
-            return true;
+            return transFile;
         }
 
         private string GetUniqueFileName(string fileName)
         {
-            fileName = Path.GetFileNameWithoutExtension(fileName) + 
-                "_" + 
+            fileName = Path.GetFileNameWithoutExtension(fileName) +
+                "_" +
                 Guid.NewGuid().ToString("N") +
                 Path.GetExtension(fileName);
             return fileName;
         }
-
-        private StatusCode GetStatusCode(string status)
-        {
-            //TODO: Declare single place of statuscode
-            StatusCode statusCode;
-            switch (status)
-            {
-                case "Approved":
-                    statusCode = Entity.StatusCode.A;
-                    break;
-                case "Failed":
-                    statusCode = Entity.StatusCode.R;
-                    break;
-                default:
-                    statusCode = Entity.StatusCode.D;
-                    break;
-            }
-
-            return statusCode;
-        }
-
-        private StatusCode GetXmlStatusCode(string status)
-        {
-            //TODO: Declare single place of statuscode
-            StatusCode statusCode;
-            switch (status)
-            {
-                case "Approved":
-                    statusCode = Entity.StatusCode.A;
-                    break;
-                case "Rejected":
-                    statusCode = Entity.StatusCode.R;
-                    break;
-                default:
-                    statusCode = Entity.StatusCode.D;
-                    break;
-            }
-
-            return statusCode;
-        }
-        //private bool IsValid(List<string> cols)
-        //{
-        //    if (cols.Count != 5)
-        //        return false;
-        //    var validStatus = new List<string> { "Approved", "Failed", "Finished" };
-        //    var dateFormatString = "dd/MM/yyyy hh:mm:ss";
-        //    var valid = true;
-
-        //    if (cols[0].Trim().Length > 50)
-        //        valid = false;
-        //    if (!Decimal.TryParse(cols[1].Trim(), out decimal amount))
-        //        valid = false;
-        //    if (cols[2].Trim().Length != 3) // TODO: Should check with currency code table
-        //        valid = false;
-        //    if (!DateTime.TryParseExact(cols[3].Trim(), dateFormatString, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime datetime))
-        //        valid = false;
-        //    if (!validStatus.Contains(cols[4].Trim()))
-        //        valid = false;
-
-        //    return valid;
-        //}
-
-
     }
 }

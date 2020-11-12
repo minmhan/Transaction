@@ -3,6 +3,9 @@ using Transaction.Entity;
 
 namespace Transaction.API.Models
 {
+    /// <summary>
+    /// 
+    /// </summary>
     public class UploadTransaction
     {
         public string TransactionId { get; set; }

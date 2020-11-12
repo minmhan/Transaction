@@ -1,8 +1,27 @@
-﻿@{
+﻿@model Transaction.Web.Models.TransactionFileViewModel
+@{
     ViewData["Title"] = "Home Page";
 }
 
 <div class="text-center">
-    <h1 class="display-4">Welcome Transaction</h1>
-    <p>Objective: Code Review</p>
+    <h1 class="display-4">Upload Transaction</h1>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        @if (!string.IsNullOrEmpty(ViewBag.msg))
+        {
+            <label for="ViewBag.msg">Message: @ViewBag.msg</label>
+        }
+        <form asp-action="Index" enctype="multipart/form-data">
+            <input type="file"
+                   accept=".csv,.xml"
+                   asp-for="FormFile"
+                   class="form-control"
+                   style="border:0px !important;padding:0px; padding-top:10px;padding-bottom:30px;" />
+            <br /><span asp-validation-for="FormFile" class="text-danger"></span>
+            <hr />
+            <button type="submit" class="btn btn-primary" value="">Upload</button>
+        </form>
+    </div>
 </div>

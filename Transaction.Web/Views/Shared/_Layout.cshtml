@@ -26,7 +26,7 @@
                             <a class="nav-link text-dark" asp-area="" asp-controller="Transaction" asp-action="Index">Transaction</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Log" asp-action="Index">Log</a>
+                            <a class="nav-link text-dark" asp-area="" asp-controller="TransErrorLog" asp-action="Index">Transaction Error Log</a>
                         </li>
                     </ul>
                 </div>
@@ -48,6 +48,7 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/lib/datatables/js/jquery.dataTables.min.js"></script>
     <script src="~/lib/datatables/js/dataTables.bootstrap4.min.js"></script>
+    <script src="~/moment.js/moment.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @RenderSection("Scripts", required: false)
 </body>

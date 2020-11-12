@@ -8,17 +8,30 @@ using Transaction.Entity;
 
 namespace Transaction.API.Library
 {
+    /// <summary>
+    /// Mapping for CSV File
+    /// </summary>
     public class CsvTransactionMap: ClassMap<UploadTransaction>
     {
-        private List<string> validStatusCode = new List<string>() { "Approved", "Failed", "Finished" };
-        private string dateFormatString = "dd/MM/yyyy HH:mm:ss";
+        private readonly List<string> csvValidStatusCode = new List<string>() { "Approved", "Failed", "Finished" };
+        private const string CSV_DATE_FORMAT = "dd/MM/yyyy HH:mm:ss";
+        private const int CSV_TRANSACTIONID_LENGTH = 50;
+       
+        /// <summary>
+        /// 
+        /// </summary>
         public CsvTransactionMap()
         {
             Map(m => m.TransactionId).Index(0);
-            Map(m => m.ValidAmount).Index(1);
+            Map(m => m.ValidAmount).Index(1).ConvertUsing((IReaderRow row) =>
+            {
+                Decimal.TryParse(row.GetField(1), out decimal result);
+                return result;
+            });
             Map(m => m.CurrencyCode).Index(2);
             Map(m => m.ValidTransactionDate).Index(3).ConvertUsing((IReaderRow row) => {
-                DateTimeOffset.TryParseExact(row.GetField(3)?.Trim(), dateFormatString,
+                // Assume Universal DateTime
+                DateTimeOffset.TryParseExact(row.GetField(3)?.Trim(), CSV_DATE_FORMAT,
                     CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out DateTimeOffset datetime);
                 return datetime; 
             });
@@ -40,7 +53,7 @@ namespace Transaction.API.Library
             {
                 // Map for error log
                 var errors = new List<string>();
-                if (row.GetField(0)?.Trim().Length == 0 || row.GetField(0)?.Trim().Length > 50)
+                if (row.GetField(0)?.Trim().Length == 0 || row.GetField(0)?.Trim().Length > CSV_TRANSACTIONID_LENGTH)
                 {
                     errors.Add("Invalid TransactionId");
                 }
@@ -53,12 +66,13 @@ namespace Transaction.API.Library
                     // May be check with list of valid currency code as well
                     errors.Add("Invalid Currency Code");
                 }
-                if (!DateTimeOffset.TryParseExact(row.GetField(3)?.Trim(), dateFormatString, 
+                // // Assume Universal DateTime
+                if (!DateTimeOffset.TryParseExact(row.GetField(3)?.Trim(), CSV_DATE_FORMAT, 
                     CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out DateTimeOffset datetime))
                 {
                     errors.Add("Invalid Transaction Date");
                 }
-                if (!validStatusCode.Contains(row.GetField(4)?.Trim()))
+                if (!csvValidStatusCode.Contains(row.GetField(4)?.Trim()))
                 {
                     errors.Add("Invalid Status Code");
                 }
@@ -75,14 +89,11 @@ namespace Transaction.API.Library
                 case "Approved":
                     statusCode = StatusCode.A;
                     break;
-                case "Failed":
-                    statusCode = StatusCode.R;
-                    break;
                 case "Finished":
                     statusCode = StatusCode.D;
                     break;
                 default:
-                    statusCode = StatusCode._;
+                    statusCode = StatusCode.R;
                     break;
             }
             return statusCode;
