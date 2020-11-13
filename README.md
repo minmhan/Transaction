@@ -20,5 +20,6 @@ Upload CSV and XML transaction files.
 
 # TODO
 - Pagination (API / UI)
+- Code refactorization
 - XML Documentation
 - Prettify UI
